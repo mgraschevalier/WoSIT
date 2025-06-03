@@ -1,4 +1,5 @@
-from __main__ import *
+# /!\ This line is mandatory /!\
+from pymake import *
 
 from pathutils import *
 
@@ -13,7 +14,6 @@ OBJ_DIR = "./obj/"
 cppfiles = listFiles(SRC_DIR + "/*.cpp")
 
 CC = "g++"
-
 
 
 ofiles = []
