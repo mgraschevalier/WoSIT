@@ -3,8 +3,14 @@
 
 
 
-bibi:
+bibi: deux
 	echo $@
 
-baba:
+baba: bibi un
+	echo $@
+
+
+
+
+un deux:
 	echo $@

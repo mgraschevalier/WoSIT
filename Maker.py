@@ -1,63 +1,25 @@
 import os
-import copy
-
 import glob
-
-import multiprocessing
-
-
-from BuildHistory import *
+import json
 
 
-def taskExecutor(task):
-    command = task["command"]
-    cmdlines = command.split("\n")
-    cmdlines = [ln.lstrip().rstrip() for ln in cmdlines]
+from ThreadPool import *
 
-    for c in cmdlines:
-        if c == "":
-            continue
-        if c[0] != "@":
-            print(f"""{c}""")
-        else:
-            c = c[1:]
-        res = os.system(c)
-        if res:
-            return res
-    return 0
-
-
-
-def isInList(obj, lst):
-    is_in = False
-    for el in lst:
-        if type(el) is list:
-            if isInList(obj, el):
-                return True
-        else:
-            if obj == el:
-                return True
-    return False
-
-
+from Token import *
+from Task import *
 
 
 
 class Maker:
-    tasks = None
-    stages = None
-    pattern_rules = None
+    __patterns = None
+    __rules = None
 
-    __build_history = None
+    __signatures = None
 
 
     def __init__(self):
-        self.tasks = []
-        self.stages = []
-        self.pattern_rules = []
-
-        self.__build_history = BuildHistory()
-
+        self.__rules = []
+        self.__patterns = []
 
 
     def __expandPaths(self, paths):
@@ -78,16 +40,13 @@ class Maker:
         paths = tp
 
         return paths
-    
-
-
-    def patternMatche(lst, pattern_s, pattern_o):
-        for el in lst:
-            pass
 
 
 
     def addRule(self, target, source=None, command=None):
+        # if callable(command) is True:
+        #     self.__addFunction(target, source, command)
+        #     return
 
         if not type(target) is list:
             target = [target]
@@ -104,140 +63,53 @@ class Maker:
         target = self.__expandPaths(target)
 
 
+        target = [t for t in target]
+        source = [s for s in source]
+
+
         for t in target:
-            ## Pattern rule
             if "%" in t:
-                self.pattern_rules.append({"target":t, "source":source, "command":command})
+                patterns_list = self.__getTargetsList(self.__patterns)
+                if t in patterns_list:
+                    raise ValueError(f"Pattern \"{t}\" is already defined.")
+                self.__patterns.append({"pattern":t, "sources":source, "command":command})
 
-
-            ## Normal rule
             else:
                 if "%" in command or any("%" in s for s in source):
-                    raise ValueError("Can't use \% placeholder in non-pattern rules.")
+                        raise ValueError("Can't use % placeholder in non-pattern rules.")
                 
-                if t in self.__getTaskTargetNameList():
-                    raise ValueError(f"Target \"{t}\" already defined.")
-
-                self.tasks.append({"target":t, "source":source, "command":command, "build":True})
-
-
-
-    def __getTaskFromTarget(self, target, task_list=None):
-        if task_list is None:
-            task_list = self.tasks
-
-        for t in task_list:
-            if t["target"] is None:
-                continue
-            if t["target"] == target:
-                return t
-        return None
-
-
-
-    def getDepsGraph(self, task):
-        return self.__getDepsGraph(task)
-
-
-
-    def __getDepsGraph(self, task, graph=None):
-        if graph is None:
-            graph = []
-
-        targets_list = self.__getTaskTargetNameList()
-
-        deptasks = []
-        for src in task["source"]:
-            if src is None:
-                return graph
-
-            # If file exist and target does not exist we reached the
-            # lowest source file in graph so stop searching for children.
-            if os.path.isfile(src) and not src in targets_list:
-                return graph
-
-            next_task = self.__getTaskFromTarget(src, self.tasks)
-            deptasks.append(next_task)
-
-            if next_task is None:
-                raise ValueError(f"No rule to make source \"{src}\".")
-            
-            self.__getDepsGraph(next_task, graph)
-
-        graph.append(deptasks)
-
-        return graph
-
-
-
-    def getDepsList(self, task):
-        graph = self.__getDepsGraph(task)
-        olist = []
-        for stage in graph:
-            for t in stage:
-                olist.append(t)
-        return olist
-    
-
-
-    def __hasAnyDeps(self, task, rlist):
-        for src in task["source"]:
-            for r in rlist:
-                if src == r["target"]:
-                    return True
-        return False
-
-
-
-    def buildStages(self, task_list=None):
-        return self.__buildStages(task_list)
-
-    def __buildStages(self, task_list=None):
-        if task_list is None:
-            task_list = self.tasks
-
-        tasks = copy.deepcopy(task_list)
-
-        stages = [[]]
-        stages[0] = tasks
-
-        modif = True
-        while modif:
-            modif = False
-
-            nbstages = len(stages)
-            for i in range(nbstages):
-                s = stages[i]
-                to_next_stage = []
-                for t in s:
-                    if self.__hasAnyDeps(t,s):
-                        to_next_stage.append(t)
-                        ##print(f"""Move {r["target"]} to stage {i+1}""")
-                        modif = True
+                targets_list = self.__getTargetsList(self.__rules)
+                if t in targets_list:
+                    raise ValueError(f"Rule \"{t}\" is already defined.")
                 
-                if modif is True:
-                    ## Remove tasks from current stage
-                    stages[i] = [t for t in stages[i] if t not in to_next_stage]
-
-                    ## Add tasks to next stage
-                    if i+1 < len(stages):
-                        stages[i+1] += to_next_stage
-                    else:
-                        stages.append(to_next_stage)
-
-        return stages
+                rule = self.__resolveSymbols({"target":t, "sources":source, "command":command})
+                self.__rules.append(rule)
 
 
-    
-    def __getTaskTargetNameList(self, task_list=None):
-        if task_list is None:
-            task_list = self.tasks
 
-        lst = []
-        for t in self.tasks:
-            lst.append(t["target"])
+
+
+    def __getTargetsList(self, rlist=None):
+        if rlist is None:
+            rlist = self.__rules
+
+        lst = [r["target"] for r in rlist]
         return lst
     
+
+
+    def __resolveSymbols(self, rule):
+        target = rule["target"]
+        sources = rule["sources"]
+        command = rule["command"]
+
+        c = command.replace("$@", target)
+        if not None in sources and len(sources) > 0:
+            c = c.replace("$^", " ".join(sources))
+            c = c.replace("$<", sources[0])
+        
+        rule["command"] = c
+        return rule
 
 
 
@@ -297,200 +169,90 @@ class Maker:
             return found_placeholders[0]
         else:
             return None
+        
 
 
-
-    ## Search for a matching pattern
-    def __searchTargetPattern(self, src):
-        for p in self.pattern_rules:
-            
-            patmatch = self.__matchPattern(p["target"], src)
+    def __searchPattern(self, name):
+        for p in self.__patterns:
+            patmatch = self.__matchPattern(p["pattern"], name)
             
             if not patmatch is None:
-                target = p["target"].replace("%", patmatch)
-                source = [s.replace("%", patmatch) for s in p["source"]]
-                command = p["command"].replace("%", patmatch)
-
-                return {"target":target, "source":source, "command":command, "build":True}
+                otarget = p["pattern"].replace("%", patmatch)
+                osources = [s.replace("%", patmatch) for s in p["sources"]]
+                ocommand = p["command"].replace("%", patmatch)
+                return {"target":otarget, "sources":osources, "command":ocommand}
             
         return None
-
-
-
-    ## Will try to resolve undefined sources by matching patterns to create tasks.
-    def __resolvePatterns(self, task_list=None):
-        if task_list is None:
-            task_list = self.tasks
-
-        tnamelist = self.__getTaskTargetNameList(task_list)
-
-        modifs = True
-        missing_target = False
-        while modifs:
-            modifs = False
-            missing_pat = False
-            to_add = []
-
-            for t in task_list:
-                for s in t["source"]:
-                    ## Check if source task exist
-                    if s not in tnamelist:
-                        ## Try to match source to defined patterns.
-                        pat = self.__searchTargetPattern(s)
-                        if pat is None:
-                            missing_target = True
-                        else:
-                            tnamelist.append(pat["target"])
-                            to_add.append(pat)
-                            modifs = True
-            
-            task_list += to_add
-
-        if missing_pat is True:
-            raise ValueError(f"""Could not find matching pattern to build some targets.""")
-    
-        return task_list
-        
-
-    def __resolveTasks(self, task_list=None):
-        if task_list is None:
-            task_list = self.tasks
-
-        for t in task_list:
-            target = t["target"]
-            source = t["source"]
-            command = t["command"]
-
-            c = command.replace("$@", target)
-            if not None in source and len(source) > 0:
-                c = c.replace("$^", " ".join(source))
-                c = c.replace("$<", source[0])
-            
-            t["command"] = c
-        
-        return task_list
-
-
-
-    def graphToList(self, graph):
-        olst = []
-        for stage in graph:
-            for el in stage:
-                olst.append(el)
-        return olst
     
 
 
-    def __updateBuildStatus(self, task_list):
-        for t in task_list:
-            if all(self.__build_history.isSame(s) for s in t["source"]):
-                t["build"] = False
-            else:
-                t["build"] = True
-            
+    # Returns the rule with the same name or None if it could
+    # not be found and could not be constructed from a pattern.
+    def __getRule(self, name): # TODO: Need to compare paths and not strings!!!!! (ex: ./obj/test.o should be equal to obj/test.o)
+        for r in self.__rules:
+            if name == r["target"]:
+                return r
 
-            tisfile = os.path.isfile(t["target"])
-            if tisfile and (not self.__build_history.isSame(t["target"])) or t["build"] is True:
-                t["build"] = True
-
-            elif not tisfile:
-                t["build"] = True
-                
-
-        return task_list
-
-
-
-    def __graphRemoveNoBuild(self, graph):
-        graph = copy.deepcopy(graph)
-        ograph = []
-        for stage in graph:
-            ograph.append([t for t in stage if t["build"] is True])
-        return ograph
-    
-
-
-    def __addToBuildHistory(self, task):
-        if type(task) is not list:
-            task = [task]
-
-        path_lst = []
-        for t in task:
-            path_lst.append(t["target"])
-            for s in t["source"]:
-                path_lst.append(s)
+        match = self.__searchPattern(name)
+        if match is None:
+            return None
         
-        path_lst = list(set(path_lst))
-        for path in path_lst:
-            self.__build_history.addFile(path)
+        rule = self.__resolveSymbols(match)
+        return rule
 
 
 
 
-    def executeTasks(self, target=None, max_process=None):
-        if type(target) is list:
-            if len(target) == 0:
-                self.executeTasks(target=None, max_process=max_process)
-            else:
-                for tname in target:
-                    self.executeTasks(tname, max_process)
-            return 0
-
-        if target is None:
-            self.executeTasks(target="all", max_process=max_process)
-            return 0
-
-        ttarg = self.__expandPaths(target)[0]
-        t = self.__getTaskFromTarget(ttarg)
-        if t is None:
-            raise ValueError(f"No target named \"{ttarg}\" found.")
-        g = self.getDepsGraph(t)
-        tasks = self.graphToList(g)
-        tasks.append(t)
-
-
-        tasks = self.__resolvePatterns(tasks)
-        tasks = self.__resolveTasks(tasks)
-
-        self.__addToBuildHistory(tasks)
-        tasks = self.__updateBuildStatus(tasks)
-
-        stages = self.__buildStages(tasks)
-        stages = self.__graphRemoveNoBuild(stages)
-            
+    def __buildTaskGraph(self, name):
+        rule = self.__getRule(name)
+        if rule is None:
+            # TODO: Also check for variables when callables will be added, not just files.
+            if not os.path.isfile(name):
+                raise ValueError(f"Could not find rule or dependency \"{name}\".")
+            return Token(name, signatures=self.__signatures)
         
-        targets_list = self.__getTaskTargetNameList()
-        for s in stages:
-            with multiprocessing.Pool(max_process) as pool:
-                ret = pool.map(taskExecutor, s)
-            
-            # Update build history
-            for i in range(len(ret)):
-                if ret[i] == 0:
-                    self.__build_history.updateFile(s[i]["target"])
-                    #print(s[i]["target"])
-                    
-                    # Update source files that are not targets as well
-                    for src in s[i]["source"]:
-                        if os.path.isfile(src) and not src in targets_list:
-                            self.__build_history.updateFile(src)
-            
-            self.__build_history.saveHistory()
-
-            if any(r != 0 for r in ret):
-                raise ValueError("\nAt least one task returned an exception.")
+        srclist = []
+        for srcname in rule["sources"]:
+            src = self.__buildTaskGraph(srcname)
+            srclist.append(src)
         
-        ##print("Done!")
+        return Task(target=Token(rule["target"], signatures=self.__signatures), sources=srclist, command=rule["command"])
+
+            
+
+    def __saveSignatures(self, signatures):
+        json.dump(signatures, open(".build_history", "w"), indent=2)
 
 
+    def __loadSignatures(self):
+        if os.path.isfile(".build_history"):
+            return json.load(open(".build_history", "r"))
+        return {}
 
-    def listTargetNames(self):
-        olst = [t["target"] for t in self.tasks]
-        olst += [p["target"] for p in self.pattern_rules]
-        return olst
-    
 
-    def printTargetNames(self):
-        lst = self.listTargetNames()
-        for t in lst:
-            print(t)
+    def execute(self, name=None, max_process=1):
+        if type(name) is list:
+            for n in name:
+                self.execute(n, max_process)
+            return
+
+        if name is None:
+            name = "all"
+
+        if max_process > 1:
+            pool = ThreadPool(max_process)
+        else:
+            pool = None
+
+        self.__signatures = self.__loadSignatures()
+
+        taskgraph = self.__buildTaskGraph(name)
+        taskgraph.update(pool=pool)
+
+        # Wait for remaining tasks to finish
+        if not pool is None:
+            pool.waitAll()
+
+        new_signatures = taskgraph.getAllSignatures()
+        new_signatures.update(self.__signatures)
+        self.__saveSignatures(new_signatures)

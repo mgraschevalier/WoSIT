@@ -42,7 +42,7 @@ def main():
     #     tnames = build.listTargetNames()
     #     print("\n".join(tnames))
     # else:
-    build.executeTasks(__args.getTargets(), max_process=2)
+    build.execute(__args.getTargets(), max_process=4)
 
 
 if __name__ == "__main__":
