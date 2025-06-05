@@ -3,7 +3,7 @@ import glob
 import json
 
 
-from ThreadPool import *
+from multiprocessing import Pool
 
 from Token import *
 from Task import *
@@ -172,6 +172,7 @@ class Maker:
         
 
 
+    # Returns a matching pattern to the given name, None if not match could be found.
     def __searchPattern(self, name):
         for p in self.__patterns:
             patmatch = self.__matchPattern(p["pattern"], name)
@@ -228,6 +229,13 @@ class Maker:
         if os.path.isfile(".build_history"):
             return json.load(open(".build_history", "r"))
         return {}
+    
+
+
+    # Dummy function to call in a multiprocessing Pool
+    def _taskExecute(self, task):
+        return task.execute()
+
 
 
     def execute(self, name=None, max_process=1):
@@ -239,20 +247,30 @@ class Maker:
         if name is None:
             name = "all"
 
-        if max_process > 1:
-            pool = ThreadPool(max_process)
-        else:
-            pool = None
-
         self.__signatures = self.__loadSignatures()
 
+        # Chain rules in a dependcy graph
         taskgraph = self.__buildTaskGraph(name)
-        taskgraph.update(pool=pool)
+        # Retrieve execution stages based on dependency and need for update
+        stages = taskgraph.buildStages()
 
-        # Wait for remaining tasks to finish
-        if not pool is None:
-            pool.waitAll()
+        stage_levels = list(stages.keys())
+        if len(stage_levels) == 0:
+            return
+        max_level = max(stage_levels)
 
+        # Execute every stage element
+        with Pool(max_process) as p:
+            res = None
+            for i in range(max_level+1):
+                stage = stages[i]
+                res = p.map(self._taskExecute, stage)
+
+                if any(r != 0 for r in res):
+                    raise RuntimeError("The execution of a task failed.")
+
+
+        # Update signatures
         new_signatures = taskgraph.getAllSignatures()
         new_signatures.update(self.__signatures)
         self.__saveSignatures(new_signatures)

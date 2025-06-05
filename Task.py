@@ -15,6 +15,8 @@ class Task:
     __parsed = False
     __parsed_signature = False
 
+    __parsed_stage= False
+
 
     def __init__(self, target, sources=None, command=None):
         if not type(target) in [Token, Task]:
@@ -53,6 +55,69 @@ class Task:
         self.__parsed_signature = True
 
         return signatures
+
+
+
+    def __hasChanged(self):
+        return self.__target.hasChanged()
+
+
+
+    def __addStage(self, stages, level, obj):
+        if level in list(stages.keys()):
+            stages[level].append(obj)
+        else:
+            stages.update({level:[obj]})
+
+        return stages
+
+
+
+    def buildNextStage(self, stages):
+        # Do not add itself again if already parsed.
+        if self.__parsed_stage is True:
+            return stages
+
+        need_update = self.__hasChanged()
+
+        src_update = False
+        for s in self.__sources:
+            if type(s) is Task:
+                # Recursively add sources to stages
+                src_update |= s.buildNextStage(stages)
+            elif type(s) is Token:
+                src_update |= s.hasChanged()
+                        
+        
+        self.__parsed_stage = True
+
+        need_update |= src_update
+
+        if len(self.__sources) == 0:
+            need_update = True
+
+        if need_update:
+            levels = list(stages.keys())
+            if len(levels) == 0:
+                t_level = 0
+            elif src_update is False:
+                t_level = max(levels)
+            else:
+                t_level = max(levels)+1
+
+            self.__addStage(stages, t_level, self)
+            return True
+        
+        return False
+
+
+
+
+    # TODO: NEED TO CHECK FOR CHANGES ETC TO UPDATE STAGES
+    def buildStages(self):
+        stages = {}
+        self.buildNextStage(stages)
+        return stages
 
 
 
@@ -98,6 +163,11 @@ class Task:
             
             return True
         return False
+
+
+
+    def execute(self):
+        return self.__executeShell(self.__command)
 
 
 
