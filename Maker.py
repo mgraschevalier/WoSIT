@@ -3,12 +3,11 @@ import glob
 import json
 
 
-from multiprocessing import Pool
-
 from Token import *
 from Task import *
+from Function import *
 
-
+from ProcessPool import *
 
 class Maker:
     __patterns = None
@@ -75,7 +74,11 @@ class Maker:
                 self.__patterns.append({"pattern":t, "sources":source, "command":command})
 
             else:
-                if "%" in command or any("%" in s for s in source):
+                if not type(command) is Function:
+                    if "%" in command:
+                        raise ValueError("Can't use % placeholder in non-pattern rules.")
+
+                if any("%" in s for s in source):
                         raise ValueError("Can't use % placeholder in non-pattern rules.")
                 
                 targets_list = self.__getTargetsList(self.__rules)
@@ -102,6 +105,9 @@ class Maker:
         target = rule["target"]
         sources = rule["sources"]
         command = rule["command"]
+
+        if not type(command) is str:
+            return rule
 
         c = command.replace("$@", target)
         if not None in sources and len(sources) > 0:
@@ -180,7 +186,10 @@ class Maker:
             if not patmatch is None:
                 otarget = p["pattern"].replace("%", patmatch)
                 osources = [s.replace("%", patmatch) for s in p["sources"]]
-                ocommand = p["command"].replace("%", patmatch)
+                if type(p["command"]) is str:
+                    ocommand = p["command"].replace("%", patmatch)
+                else:
+                    ocommand = p["command"]
                 return {"target":otarget, "sources":osources, "command":ocommand}
             
         return None
@@ -260,10 +269,16 @@ class Maker:
         max_level = max(stage_levels)
 
         # Execute every stage element
-        with Pool(max_process) as p:
+        with ProcessPool(max_process) as p:# TODO: Handle processes communication (memory not shared accross processes)
             res = None
             for i in range(max_level+1):
                 stage = stages[i]
+
+                # res = [0]
+                # for t in stage:
+                #     pp = Process(target=self._taskExecute, args=(t,))
+                #     pp.start()
+                #     pp.join()
                 res = p.map(self._taskExecute, stage)
 
                 if any(r != 0 for r in res):

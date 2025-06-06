@@ -1,10 +1,7 @@
 import os
 
 from Token import *
-
-
-from ThreadPool import *
-
+from Function import *
 
 
 class Task:
@@ -12,7 +9,6 @@ class Task:
     __sources = None
     __command = None
 
-    __parsed = False
     __parsed_signature = False
 
     __parsed_stage= False
@@ -20,10 +16,10 @@ class Task:
 
     def __init__(self, target, sources=None, command=None):
         if not type(target) in [Token, Task]:
-            raise ValueError("Must be of type \"Task or Token\".")
+            raise ValueError("Target must be of type \"Task or Token\".")
 
         if not all(type(s) in [Token, Task] for s in sources):
-            raise ValueError("Must be of type \"Task or Token\".")
+            raise ValueError("Sources must be of type \"Task or Token\".")
 
 
         self.__target = target
@@ -37,6 +33,7 @@ class Task:
         return self.__target.getSignature()
 
 
+    # Recursively parse the graph to get all signatures
     def getAllSignatures(self, signatures=None):
         if signatures is None:
             signatures = {}
@@ -112,8 +109,6 @@ class Task:
 
 
 
-
-    # TODO: NEED TO CHECK FOR CHANGES ETC TO UPDATE STAGES
     def buildStages(self):
         stages = {}
         self.buildNextStage(stages)
@@ -130,56 +125,18 @@ class Task:
 
 
 
-    # Call the update() method of all sources, then
-    # updates itself and return 'True' or return 'False' if no
-    # changes applied.
-    def update(self, pool=None):
-        # No need to search deeper for updates if task already parsed,
-        # as all dependencies have already been parsed too.
-        if self.__parsed is True:
-            return True
-        
-        # Call update process on all sources
-        update_results = []
-        for s in self.__sources:
-            res = s.update(pool=pool)
-            update_results.append(res)
-
-        if not pool is None:
-            if len(self.__sources) > 0 and any(r is True for r in update_results):
-                pool.waitAll()
-
-        # Set flag to signal this task and all its sources have already
-        # been parsed for changes and executed as needed.
-        self.__parsed = True
-
-
-        # If some source updated or target changed, execute
-        if self.__target.hasChanged() or (len(self.__sources) > 0 and any(r is True for r in update_results)):
-            if pool is None:
-                self.__execute(self.__command)
-            else:
-                pool.add(self.__execute, (self.__command, pool))
-            
-            return True
-        return False
-
-
-
     def execute(self):
-        return self.__executeShell(self.__command)
+        if not self.__command is None:
+            res = 1
+            if type(self.__command) is str:
+                res = self.__executeShell(self.__command)
+            elif type(self.__command) is Function:
+                res = self.__executeCallable(self.__command)
 
-
-
-    def __execute(self, command, pool=None):
-        res = self.__executeShell(command)
-        if res != 0:
-            return res
+            if res != 0:
+                return res
+        
         self.__target.updateSignature()
-
-        if not pool is None:
-            pool.release()
-
         return 0
 
 
@@ -198,4 +155,20 @@ class Task:
             res = os.system(c)
             if res:
                 return res
+        return 0
+
+
+
+    def __executeCallable(self, command):
+        func = command.function
+        args = command.args
+        if args is None:
+            retval = func()
+        else:
+            args = [a.get() if type(a) is Variable else a for a in args]
+            retval = func(*args)
+
+        if command.ret is not None:
+            if type(command.ret) is Variable:
+                command.setRet(retval)
         return 0

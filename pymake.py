@@ -1,5 +1,6 @@
 
 from Maker import *
+from Function import *
 from ArgParser import *
 
 import argparse
@@ -11,9 +12,10 @@ import sys
 
 
 def importModule(path):
-    spec = importlib.util.spec_from_file_location("module.name", path)
+    name = os.path.basename(path).split(".py")[0]
+    spec = importlib.util.spec_from_file_location(name, path)
     mod = importlib.util.module_from_spec(spec)
-    sys.modules["module.name"] = mod
+    sys.modules[name] = mod
     spec.loader.exec_module(mod)
 
 
