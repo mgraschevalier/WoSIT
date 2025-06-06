@@ -3,6 +3,8 @@ import os
 from hashlib import sha1
 
 
+from Function import *
+
 
 class Token:
     __object = None
@@ -35,12 +37,14 @@ class Token:
 
 
 
-    def __computeSignature(self, path):
-        if not os.path.isfile(path):
+    def __computeSignature(self, obj):
+        if type(obj) is Variable:
+            return None
+        if not os.path.isfile(obj):
             return None
         
         signature = None
-        with open(path, "rb") as f:
+        with open(obj, "rb") as f:
             data = f.read()
             signature = sha1(data).hexdigest()
         return signature
@@ -72,7 +76,10 @@ class Token:
 
 
 
-    def getAllSignatures(self, signatures=None):
+    def getAllSignatures(self):
+        if type(self.__object) is Variable:
+            return None
+        
         if self.__signature is None:
             self.__signature = self.getSignature()
 

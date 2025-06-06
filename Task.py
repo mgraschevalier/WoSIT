@@ -4,6 +4,10 @@ from Token import *
 from Function import *
 
 
+
+PRINT_COLOR_CODE = "51"
+
+
 class Task:
     __target = None
     __sources = None
@@ -43,8 +47,9 @@ class Task:
 
         # Add all dependencies
         for s in self.__sources:
-            sig = s.getAllSignatures(signatures)
-            signatures.update(sig)
+            sig = s.getAllSignatures()
+            if not sig is None:
+                signatures.update(sig)
 
         # Add itself
         signatures.update({self.__target.get():self.getSignature()})
@@ -141,6 +146,10 @@ class Task:
 
 
 
+    def __printCommand(self, text):
+        print(f"\033[38;5;{PRINT_COLOR_CODE}m{text}\033[0m")
+
+
     def __executeShell(self, command):
         cmdlines = command.split("\n")
         cmdlines = [ln.lstrip().rstrip() for ln in cmdlines]
@@ -149,7 +158,7 @@ class Task:
             if c == "":
                 continue
             if c[0] != "@":
-                print(f"""{c}""")
+                self.__printCommand(f"""{c}""")
             else:
                 c = c[1:]
             res = os.system(c)
@@ -158,14 +167,27 @@ class Task:
         return 0
 
 
+    def __argsToStr(self, args):
+        olst = []
+        for a in args:
+            if type(a) is str:
+                olst.append(f"\"{a}\"")
+            else:
+                olst.append(str(a))
+        return olst
+
 
     def __executeCallable(self, command):
         func = command.function
         args = command.args
         if args is None:
+            self.__printCommand(f"{func.__name__}()")
             retval = func()
         else:
             args = [a.get() if type(a) is Variable else a for a in args]
+
+            strargs = self.__argsToStr(args)
+            self.__printCommand(f"""{func.__name__}({", ".join(strargs)})""")
             retval = func(*args)
 
         if command.ret is not None:

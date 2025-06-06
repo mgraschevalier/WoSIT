@@ -43,10 +43,6 @@ class Maker:
 
 
     def addRule(self, target, source=None, command=None):
-        # if callable(command) is True:
-        #     self.__addFunction(target, source, command)
-        #     return
-
         if not type(target) is list:
             target = [target]
         
@@ -74,10 +70,10 @@ class Maker:
                 self.__patterns.append({"pattern":t, "sources":source, "command":command})
 
             else:
-                if not type(command) is Function:
+                if type(command) is str:
                     if "%" in command:
                         raise ValueError("Can't use % placeholder in non-pattern rules.")
-
+        
                 if any("%" in s for s in source):
                         raise ValueError("Can't use % placeholder in non-pattern rules.")
                 
@@ -85,6 +81,12 @@ class Maker:
                 if t in targets_list:
                     raise ValueError(f"Rule \"{t}\" is already defined.")
                 
+
+                if type(command) is Function:
+                    # Add variables to source
+                    if not command.args is None:
+                        source += [a for a in command.args if type(a) is Variable]
+
                 rule = self.__resolveSymbols({"target":t, "sources":source, "command":command})
                 self.__rules.append(rule)
 
@@ -216,9 +218,9 @@ class Maker:
     def __buildTaskGraph(self, name):
         rule = self.__getRule(name)
         if rule is None:
-            # TODO: Also check for variables when callables will be added, not just files.
-            if not os.path.isfile(name):
-                raise ValueError(f"Could not find rule or dependency \"{name}\".")
+            if not type(name) is Variable:
+                if not os.path.isfile(name):
+                    raise ValueError(f"Could not find rule or dependency \"{name}\".")
             return Token(name, signatures=self.__signatures)
         
         srclist = []
@@ -236,7 +238,10 @@ class Maker:
 
     def __loadSignatures(self):
         if os.path.isfile(".build_history"):
-            return json.load(open(".build_history", "r"))
+            try:
+                return json.load(open(".build_history", "r"))
+            except:
+                pass
         return {}
     
 
@@ -249,9 +254,13 @@ class Maker:
 
     def execute(self, name=None, max_process=1):
         if type(name) is list:
-            for n in name:
-                self.execute(n, max_process)
-            return
+            if len(name) > 0:
+                for n in name:
+                    self.execute(n, max_process)
+                return
+            else:
+                self.execute(None, max_process)
+                return
 
         if name is None:
             name = "all"
@@ -269,16 +278,10 @@ class Maker:
         max_level = max(stage_levels)
 
         # Execute every stage element
-        with ProcessPool(max_process) as p:# TODO: Handle processes communication (memory not shared accross processes)
+        with ProcessPool(max_process) as p:
             res = None
             for i in range(max_level+1):
                 stage = stages[i]
-
-                # res = [0]
-                # for t in stage:
-                #     pp = Process(target=self._taskExecute, args=(t,))
-                #     pp.start()
-                #     pp.join()
                 res = p.map(self._taskExecute, stage)
 
                 if any(r != 0 for r in res):
