@@ -103,6 +103,11 @@ class Maker:
     
 
 
+    def getTargetsList(self):
+        return self.__getTargetsList()
+    
+
+
     def __resolveSymbols(self, rule):
         target = rule["target"]
         sources = rule["sources"]

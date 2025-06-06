@@ -1,7 +1,5 @@
 
 from Maker import *
-from Function import *
-from ArgParser import *
 
 import argparse
 import os
@@ -20,16 +18,16 @@ def importModule(path):
 
 
 
-def main():
-    #print(f"Name is: {__name__}")
-    
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("-l", "--list", action="store_true", help="List targets.")
+def main():    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("rule", type=str, nargs="*")
+    parser.add_argument("-l", "--list", action="store_true", help="List targets.")
+    parser.add_argument("-j", "--jobs", type=int, default=1, help="Allow N jobs at once.")
+    parser.add_argument("-f", "--file", type=str, help="Use the specified buildconfig file.")
 
-    # parsed_args = parser.parse_args()
+    parsed_args = parser.parse_args()
 
 
-    __args = ArgParser()
     global build
     build = Maker()
 
@@ -37,14 +35,19 @@ def main():
     def addRule(target, source=None, command=None):
         build.addRule(target=target, source=source, command=command)
 
-    importModule(os.path.join(os.getcwd(), "buildconfig.py"))
+    if parsed_args.file is None:
+        importModule(os.path.join(os.getcwd(), "buildconfig.py"))
+    else:
+        fpath = os.path.expanduser(os.path.expandvars(parsed_args.file))
+        if not os.path.isfile(fpath):
+            raise ValueError("File not found.")
+        importModule(fpath)
 
-    # if parsed_args.list is True:
-    #     print("Available targets:")
-    #     tnames = build.listTargetNames()
-    #     print("\n".join(tnames))
-    # else:
-    build.execute(__args.getTargets(), max_process=4)
+    if parsed_args.list is True:
+        tnames = build.getTargetsList()
+        print("\n".join(tnames))
+    else:
+        build.execute(parsed_args.rule, max_process=parsed_args.jobs)
 
 
 if __name__ == "__main__":
