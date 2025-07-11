@@ -1,7 +1,7 @@
 import os
 
-from Token import *
-from Function import *
+from pymake.Token import *
+from pymake.Function import *
 
 
 
@@ -181,13 +181,15 @@ class Task:
         func = command.function
         args = command.args
         if args is None:
-            self.__printCommand(f"{func.__name__}()")
+            if not command.quiet:
+                self.__printCommand(f"{func.__name__}()")
             retval = func()
         else:
             args = [a.get() if type(a) is Variable else a for a in args]
 
             strargs = self.__argsToStr(args)
-            self.__printCommand(f"""{func.__name__}({", ".join(strargs)})""")
+            if not command.quiet:
+                self.__printCommand(f"""{func.__name__}({", ".join(strargs)})""")
             retval = func(*args)
 
         if command.ret is not None:

@@ -29,15 +29,22 @@ class Function:
     function = None
     args = None
     ret = None
+    quiet = False
 
-    def __init__(self, function, args=None, ret=None):
+    def __init__(self, function, args=None, ret=None, quiet=False):
         self.function = function
+
+        if args is not None:
+            if type(args) is not tuple:
+                raise ValueError("Arguments must be passed as a tuple.")
         self.args = args
 
         if not ret is None:
             if not type(ret) is Variable:
                 raise ValueError("Return argument \"ret\" must be of type \"Variable\".")
             self.ret = ret
+
+        self.quiet = quiet
 
 
     def getFunction(self):

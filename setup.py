@@ -24,8 +24,7 @@ setup(
     packages=package_list,
     package_data={
         'pymake': [
-            'version.txt',
-            '*',
+            'version.txt'
         ]
     },
     classifiers=[
@@ -37,7 +36,7 @@ setup(
     install_requires=[], #read_requirements(),
     entry_points={
         "console_scripts": [
-            "pymake=pymake:main",
+            "pymake=pymake.pymake:main",
         ],
     },
 )

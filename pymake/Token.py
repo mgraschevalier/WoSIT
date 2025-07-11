@@ -3,7 +3,7 @@ import os
 from hashlib import sha1
 
 
-from Function import *
+from pymake.Function import *
 
 
 class Token:

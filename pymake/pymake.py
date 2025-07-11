@@ -1,5 +1,5 @@
 
-from Maker import *
+from pymake.Maker import *
 
 import argparse
 import os
@@ -7,9 +7,15 @@ import os
 import importlib.util
 import sys
 
+#sys.path.append(os.path.abspath(os.path.join(os.path.dirname("__file__"), '..')))
+
 
 
 def importModule(path):
+    dirpath = os.path.abspath(os.path.dirname(path))
+    if dirpath not in sys.path:
+        sys.path.insert(0, dirpath)
+
     name = os.path.basename(path).split(".py")[0]
     spec = importlib.util.spec_from_file_location(name, path)
     mod = importlib.util.module_from_spec(spec)
@@ -18,7 +24,7 @@ def importModule(path):
 
 
 
-def main():    
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("rule", type=str, nargs="*")
     parser.add_argument("-l", "--list", action="store_true", help="List targets.")
