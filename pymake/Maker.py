@@ -13,8 +13,6 @@ class Maker:
     __patterns = None
     __rules = None
 
-    __signatures = None
-
 
     def __init__(self):
         self.__rules = []
@@ -226,29 +224,15 @@ class Maker:
             if not type(name) is Variable:
                 if not os.path.isfile(name):
                     raise ValueError(f"Could not find rule or dependency \"{name}\".")
-            return Token(name, signatures=self.__signatures)
+            return Token(name)
         
         srclist = []
         for srcname in rule["sources"]:
             src = self.__buildTaskGraph(srcname)
             srclist.append(src)
         
-        return Task(target=Token(rule["target"], signatures=self.__signatures), sources=srclist, command=rule["command"])
+        return Task(target=Token(rule["target"]), sources=srclist, command=rule["command"])
 
-            
-
-    def __saveSignatures(self, signatures):
-        json.dump(signatures, open(".build_history", "w"), indent=2)
-
-
-    def __loadSignatures(self):
-        if os.path.isfile(".build_history"):
-            try:
-                return json.load(open(".build_history", "r"))
-            except:
-                pass
-        return {}
-    
 
 
     # Dummy function to call in a multiprocessing Pool
@@ -270,7 +254,6 @@ class Maker:
         if name is None:
             name = "all"
 
-        self.__signatures = self.__loadSignatures()
 
         # Chain rules in a dependcy graph
         taskgraph = self.__buildTaskGraph(name)
@@ -280,20 +263,14 @@ class Maker:
         stage_levels = list(stages.keys())
         if len(stage_levels) == 0:
             return
-        max_level = max(stage_levels)
 
         # Execute every stage element
         with ProcessPool(max_process) as p:
             res = None
-            for i in range(max_level+1):
-                stage = stages[i]
+            for lvl, stage in sorted(stages.items()):
                 res = p.map(self._taskExecute, stage)
 
                 if any(r != 0 for r in res):
                     raise RuntimeError("The execution of a task failed.")
 
 
-        # Update signatures
-        new_signatures = taskgraph.getAllSignatures()
-        new_signatures.update(self.__signatures)
-        self.__saveSignatures(new_signatures)

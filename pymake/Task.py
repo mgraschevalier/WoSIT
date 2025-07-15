@@ -13,9 +13,10 @@ class Task:
     __sources = None
     __command = None
 
-    __parsed_signature = False
+    __parsed_stage = False
+    __need_update = False
 
-    __parsed_stage= False
+    __level = None
 
 
     def __init__(self, target, sources=None, command=None):
@@ -30,38 +31,11 @@ class Task:
         self.__sources = sources
 
         self.__command = command
+    
 
-
-
-    def getSignature(self):
-        return self.__target.getSignature()
-
-
-    # Recursively parse the graph to get all signatures
-    def getAllSignatures(self, signatures=None):
-        if signatures is None:
-            signatures = {}
-
-        if self.__parsed_signature is True:
-            return signatures
-
-        # Add all dependencies
-        for s in self.__sources:
-            sig = s.getAllSignatures()
-            if not sig is None:
-                signatures.update(sig)
-
-        # Add itself
-        signatures.update({self.__target.get():self.getSignature()})
-        
-        self.__parsed_signature = True
-
-        return signatures
-
-
-
-    def __hasChanged(self):
-        return self.__target.hasChanged()
+    # Returns the mtime of the target
+    def getmtime(self):
+        return self.__target.getmtime()
 
 
 
@@ -75,12 +49,44 @@ class Task:
 
 
 
+    def getLevel(self):
+        if not self.__level is None:
+            return self.__level
+        
+        if len(self.__sources) == 0:
+            self.__level = 0
+            return 0
+        
+        max_level = 0
+        is_any_task = False
+        for s in self.__sources:
+            if type(s) is Task:
+                is_any_task = True
+                slv = s.getLevel()
+                max_level = max(max_level, slv)
+        
+        if not is_any_task:
+            self.__level = 0
+            return 0
+        else:
+            self.__level = max_level + 1
+            return max_level + 1
+    
+
+
     def buildNextStage(self, stages):
         # Do not add itself again if already parsed.
         if self.__parsed_stage is True:
-            return stages
+            return self.__need_update
 
-        need_update = self.__hasChanged()
+        
+        need_update = False
+
+        self_time = self.getmtime()
+        if self_time is None:
+            need_update = True
+        
+        
 
         src_update = False
         for s in self.__sources:
@@ -88,7 +94,13 @@ class Task:
                 # Recursively add sources to stages
                 src_update |= s.buildNextStage(stages)
             elif type(s) is Token:
-                src_update |= s.hasChanged()
+                source_time = s.getmtime()
+
+                if not self_time is None:
+                    if source_time is None:
+                        src_update = True
+                    else:
+                        src_update |= (s.getmtime() > self.getmtime()) # If source newer than target
                         
         
         self.__parsed_stage = True
@@ -98,14 +110,10 @@ class Task:
         if len(self.__sources) == 0:
             need_update = True
 
+        self.__need_update = need_update
+
         if need_update:
-            levels = list(stages.keys())
-            if len(levels) == 0:
-                t_level = 0
-            elif src_update is False:
-                t_level = max(levels)
-            else:
-                t_level = max(levels)+1
+            t_level = self.getLevel()
 
             self.__addStage(stages, t_level, self)
             return True
@@ -121,15 +129,6 @@ class Task:
 
 
 
-    # Returns True if Task is a leaf. Meaning it does not depend
-    # on another Task. It can still depend on various sources (ex: files) 
-    def isLeaf(self):
-        if all(type(s) is Token for s in self.__sources):
-            return True
-        return False
-
-
-
     def execute(self):
         if not self.__command is None:
             res = 1
@@ -141,7 +140,6 @@ class Task:
             if res != 0:
                 return res
         
-        self.__target.updateSignature()
         return 0
 
 
