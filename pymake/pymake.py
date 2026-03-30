@@ -1,5 +1,5 @@
 
-from pymake.Maker import *
+from pymake import Maker
 
 import argparse
 import os
