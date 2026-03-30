@@ -152,6 +152,7 @@ class Task:
         cmdlines = command.split("\n")
         cmdlines = [ln.lstrip().rstrip() for ln in cmdlines]
 
+        # TODO: Add support for '\' splitting the shell commands
         for c in cmdlines:
             if c == "":
                 continue
@@ -159,7 +160,7 @@ class Task:
                 self.__printCommand(f"""{c}""")
             else:
                 c = c[1:]
-            res = os.system(c)
+            res = os.system(c) # TODO: Open one shell and execute all lines of a rule into the same one.
             if res:
                 return res
         return 0
