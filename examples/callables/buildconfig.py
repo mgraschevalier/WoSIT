@@ -1,5 +1,5 @@
-from pymake import *
-
+from pymake.Function import *
+from pymake.pymake import *
 
 
 

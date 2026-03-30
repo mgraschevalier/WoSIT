@@ -1,5 +1,5 @@
 
-from pymake.Maker import *
+from pymake import Maker
 
 import argparse
 import os
@@ -30,9 +30,12 @@ def main():
     parser.add_argument("-l", "--list", action="store_true", help="List targets.")
     parser.add_argument("-j", "--jobs", type=int, default=1, help="Allow N jobs at once.")
     parser.add_argument("-f", "--file", type=str, help="Use the specified buildconfig file.")
+    parser.add_argument("-C", "--directory", type=str, help="Change the directory before doing anything.")
 
     parsed_args = parser.parse_args()
 
+    if parsed_args.directory is not None:
+        os.chdir(parsed_args.directory)
 
     global build
     build = Maker()

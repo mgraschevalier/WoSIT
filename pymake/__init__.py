@@ -1,1 +1,1 @@
-import pymake.pymake
+from pymake.Maker import Maker

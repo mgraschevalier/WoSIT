@@ -13,10 +13,13 @@ class Maker:
     __patterns = None
     __rules = None
 
+    __parsed = None
+
 
     def __init__(self):
         self.__rules = []
         self.__patterns = []
+        self.__parsed = {}
 
 
     def __expandPaths(self, paths):
@@ -224,14 +227,26 @@ class Maker:
             if not type(name) is Variable:
                 if not os.path.isfile(name):
                     raise ValueError(f"Could not find rule or dependency \"{name}\".")
-            return Token(name)
+            
+            tok = None
+            if name in list(self.__parsed.keys()):
+                tok = self.__parsed[name]
+            else:
+                tok = Token(name)
+                self.__parsed.update({name:tok})
+            return tok
+    
+        if rule["command"] in list(self.__parsed.keys()):
+            return self.__parsed[rule["command"]]
         
         srclist = []
         for srcname in rule["sources"]:
             src = self.__buildTaskGraph(srcname)
             srclist.append(src)
         
-        return Task(target=Token(rule["target"]), sources=srclist, command=rule["command"])
+        task = Task(target=Token(rule["target"]), sources=srclist, command=rule["command"])
+        self.__parsed.update({rule["command"]:task})
+        return task
 
 
 
