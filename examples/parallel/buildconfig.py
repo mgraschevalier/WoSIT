@@ -1,4 +1,4 @@
-from wosit import *
+from wosit.builder import *
 
 
 from random import randint
