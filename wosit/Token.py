@@ -1,6 +1,6 @@
 import os
 
-from pymake.Function import *
+from wosit.Function import *
 
 
 class Token:

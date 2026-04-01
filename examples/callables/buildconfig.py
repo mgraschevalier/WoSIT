@@ -1,5 +1,5 @@
-from pymake.Function import *
-from pymake.pymake import *
+from wosit.Function import *
+from wosit.wosit import *
 
 
 

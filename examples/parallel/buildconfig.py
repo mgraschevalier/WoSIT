@@ -1,4 +1,4 @@
-from pymake import *
+from wosit import *
 
 
 from random import randint

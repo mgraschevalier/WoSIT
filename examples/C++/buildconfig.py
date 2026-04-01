@@ -1,11 +1,11 @@
 # /!\ This line is mandatory /!\
-from pymake import *
+from wosit import *
 
 from pathutils import *
 
 
 
-APP = "myappcompiledwithmypymakeandanamethatiscertailnytoolooooooooonnnnnng"
+APP = "myappcompiledwithmywositandanamethatiscertailnytoolooooooooonnnnnng"
 
 
 SRC_DIR = "./src/"

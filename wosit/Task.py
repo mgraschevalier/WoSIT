@@ -1,7 +1,7 @@
 import os
 
-from pymake.Token import *
-from pymake.Function import *
+from wosit.Token import *
+from wosit.Function import *
 
 
 

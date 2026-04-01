@@ -1,15 +1,15 @@
-# PyMake
+# WoSIT (Workflow Script Interpreter Tool)
 
-**PyMake** is an automation tool made to replace **make** in many instances. It is written in pure Python and is built to ease integration of other Python scripts in automation workflows. This repository uses mainly **PyMake** (building applications, generating configurations, tests automation, ...), except some legacy code still making use of **make** and Makefiles.
+**WoSIT** is an automation tool made to replace **make** in many instances. It is written in pure Python and is built to ease integration of other Python scripts in automation workflows. This repository uses mainly **WoSIT** (building applications, generating configurations, tests automation, ...), except some legacy code still making use of **make** and Makefiles.
 
-Much like **make** makes use of **Makefiles**, **PyMake** automation workflow is based around files describing the tasks to execute called **buildconfig.py**. Those are Python files, and as such allow for the use of the full scripting capabilities offered by Python and its packages. This fact makes it closer to **generating** automation workflows based on the given script, compared to make which uses workflows **descriptions**.
+Much like **make** makes use of **Makefiles**, **WoSIT** automation workflow is based around files describing the tasks to execute called **buildconfig.py**. Those are Python files, and as such allow for the use of the full scripting capabilities offered by Python and its packages. This fact makes it closer to **generating** automation workflows based on the given script, compared to make which uses workflows **descriptions**.
 
-## Using PyMake
-Similarly to Makefiles, PyMake's way of describing automation workflows is through **buildconfig.py** files.
+## Using WoSIT
+Similarly to Makefiles, WoSIT's way of describing automation workflows is through **buildconfig.py** files.
 
 ### Basic Usage
 
-Executing a PyMake workflow is as simple as typing `pymake` in a directory where a `buildconfig.py` file is present. By default PyMake will execute the `all` rule.
+Executing a WoSIT workflow is as simple as typing `wosit` in a directory where a `buildconfig.py` file is present. By default WoSIT will execute the `all` rule.
 
 Similarly to Make, parallel execution can be achieved with the -j flag followed by the maximum number of processes to use.
 
@@ -21,7 +21,7 @@ The script then generates those rules by calling the function.
 The rule with target `all` is added with its source set to the last generated rule. This target is special as it is executed by default when no other target is specified.
 
 ```python
-from pymake.pymake import *
+from wosit.wosit import *
 
 def genMyRules(nbrules):
     addRule(
@@ -55,10 +55,10 @@ addRule(
 
 ### Python Functions Example
 
-PyMake is capable of executing Python functions. The syntax is the same as any other rule, with the exception that the function must be passed to the command argument through PyMake's **Function()** object.
+WoSIT is capable of executing Python functions. The syntax is the same as any other rule, with the exception that the function must be passed to the command argument through WoSIT's **Function()** object.
 
 ```python
-from pymake.pymake import *
+from wosit.wosit import *
 
 addRule(
     target = "rule_0",

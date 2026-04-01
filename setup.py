@@ -13,7 +13,7 @@ package_list = find_packages()
 
 
 setup(
-    name="pymake",
+    name="wosit",
     version=read_version(),
     author="Maxime Gras-Chevalier",
     author_email="",
@@ -23,7 +23,7 @@ setup(
     url="",
     packages=package_list,
     package_data={
-        'pymake': [
+        'wosit': [
             'version.txt'
         ]
     },
@@ -36,7 +36,7 @@ setup(
     install_requires=[], #read_requirements(),
     entry_points={
         "console_scripts": [
-            "pymake=pymake.pymake:main",
+            "wosit=wosit.wosit:main",
         ],
     },
 )

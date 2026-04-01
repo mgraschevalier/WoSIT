@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: publish
-      url: https://pypi.org/p/pymake
+      url: https://pypi.org/p/wosit
     permissions:
       id-token: write
     steps:

@@ -1,5 +1,5 @@
 
-from pymake import Maker
+from wosit import Maker
 
 import argparse
 import os

@@ -3,11 +3,11 @@ import glob
 import json
 
 
-from pymake.Token import *
-from pymake.Task import *
-from pymake.Function import *
+from wosit.Token import *
+from wosit.Task import *
+from wosit.Function import *
 
-from pymake.ProcessPool import *
+from wosit.ProcessPool import *
 
 class Maker:
     __patterns = None
