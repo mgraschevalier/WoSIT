@@ -2,7 +2,7 @@ import os
 from setuptools import setup, find_packages
 
 def read_version():
-    with open("./version.txt", "r") as file:
+    with open("./wosit/version.txt", "r") as file:
         return file.read().strip()
 
 # def read_requirements():
@@ -17,7 +17,7 @@ setup(
     version=read_version(),
     author="Maxime Gras-Chevalier",
     author_email="",
-    description="Like make but in Python",
+    description="WoSIT is an automation tool made to replace **make** in many instances.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     url="",

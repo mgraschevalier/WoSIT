@@ -24,12 +24,12 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install build
     - name: Build a binary wheel and a source tarball
-      run: python3 -m build sources
+      run: python3 -m build .
     - name: Store the distribution packages
       uses: actions/upload-artifact@v4
       with:
         name: python-package-distributions
-        path: sources/dist/
+        path: ./dist/
 
   publish-to-pypi:
     name: >-
@@ -48,8 +48,8 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: python-package-distributions
-        path: sources/dist/
+        path: ./dist/
     - name: Publish distribution to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
-        packages_dir: sources/dist/
+        packages_dir: ./dist/
