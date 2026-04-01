@@ -38,5 +38,4 @@ addRule(target="returnvalue",
 
 addRule(target="all",
         source="returnvalue",
-        # command=Function(print, args=(retvar,)))
-        command="echo coucoucoucoucoucoucoucoucocuocuocucoucocuocucoucocuocuocucoucocuocucoucocuocucoucoucocuocuocucoucocuocuocuco")
+        command=Function(print, args=(retvar,)))
