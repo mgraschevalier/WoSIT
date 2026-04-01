@@ -236,8 +236,8 @@ class Maker:
                 self.__parsed.update({name:tok})
             return tok
     
-        if rule["command"] in list(self.__parsed.keys()):
-            return self.__parsed[rule["command"]]
+        if rule["target"] in list(self.__parsed.keys()):
+            return self.__parsed[rule["target"]]
         
         srclist = []
         for srcname in rule["sources"]:
@@ -245,7 +245,7 @@ class Maker:
             srclist.append(src)
         
         task = Task(target=Token(rule["target"]), sources=srclist, command=rule["command"])
-        self.__parsed.update({rule["command"]:task})
+        self.__parsed.update({rule["target"]:task})
         return task
 
 
