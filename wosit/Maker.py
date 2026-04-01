@@ -3,11 +3,11 @@ import glob
 import json
 
 
-from wosit.Token import *
-from wosit.Task import *
-from wosit.Function import *
+from wosit.Token import Token
+from wosit.Task import Task
+from wosit.Function import Variable, Function
 
-from wosit.ProcessPool import *
+from wosit.ProcessPool import ProcessPool
 
 class Maker:
     __patterns = None
@@ -236,8 +236,8 @@ class Maker:
                 self.__parsed.update({name:tok})
             return tok
     
-        if rule["command"] in list(self.__parsed.keys()):
-            return self.__parsed[rule["command"]]
+        if rule["target"] in list(self.__parsed.keys()):
+            return self.__parsed[rule["target"]]
         
         srclist = []
         for srcname in rule["sources"]:
@@ -245,7 +245,7 @@ class Maker:
             srclist.append(src)
         
         task = Task(target=Token(rule["target"]), sources=srclist, command=rule["command"])
-        self.__parsed.update({rule["command"]:task})
+        self.__parsed.update({rule["target"]:task})
         return task
 
 
@@ -256,15 +256,15 @@ class Maker:
 
 
 
-    def execute(self, name=None, max_process=1):
+    def getStages(self, name=None, max_process=1) -> dict:
         if type(name) is list:
             if len(name) > 0:
                 for n in name:
                     self.execute(n, max_process)
-                return
+                return None
             else:
                 self.execute(None, max_process)
-                return
+                return None
 
         if name is None:
             name = "all"
@@ -277,6 +277,14 @@ class Maker:
 
         stage_levels = list(stages.keys())
         if len(stage_levels) == 0:
+            return None
+        
+        return stages
+
+    def execute(self, name=None, max_process=1):
+
+        stages = self.getStages(name, max_process)
+        if stages is None:
             return
 
         # Execute every stage element

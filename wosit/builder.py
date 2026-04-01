@@ -9,7 +9,12 @@ import sys
 
 #sys.path.append(os.path.abspath(os.path.join(os.path.dirname("__file__"), '..')))
 
+global build
+build = Maker()
 
+global addRule
+def addRule(target, source=None, command=None):
+    build.addRule(target=target, source=source, command=command)
 
 def importModule(path):
     dirpath = os.path.abspath(os.path.dirname(path))
@@ -37,12 +42,6 @@ def main():
     if parsed_args.directory is not None:
         os.chdir(parsed_args.directory)
 
-    global build
-    build = Maker()
-
-    global addRule
-    def addRule(target, source=None, command=None):
-        build.addRule(target=target, source=source, command=command)
 
     if parsed_args.file is None:
         importModule(os.path.join(os.getcwd(), "buildconfig.py"))

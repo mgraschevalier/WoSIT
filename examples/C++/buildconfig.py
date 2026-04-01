@@ -1,8 +1,7 @@
 # /!\ This line is mandatory /!\
-from wosit import *
+from wosit.builder import addRule
 
-from pathutils import *
-
+import os 
 
 
 APP = "myappcompiledwithmywositandanamethatiscertailnytoolooooooooonnnnnng"
@@ -11,7 +10,8 @@ APP = "myappcompiledwithmywositandanamethatiscertailnytoolooooooooonnnnnng"
 SRC_DIR = "./src/"
 OBJ_DIR = "./obj/"
 
-cppfiles = listFiles(SRC_DIR + "/*.cpp")
+cppfiles = os.listdir(SRC_DIR)
+cppfiles = [f for f in cppfiles if f.endswith(".cpp")]
 
 CC = "g++"
 
@@ -20,6 +20,8 @@ ofiles = []
 for cppf in cppfiles:
     opath = OBJ_DIR + cppf.replace(".cpp", ".o")
     ofiles.append(opath)
+
+    os.makedirs(OBJ_DIR, exist_ok=True)
 
     addRule(
         target = opath,

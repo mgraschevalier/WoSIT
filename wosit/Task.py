@@ -1,7 +1,7 @@
 import os
 
-from wosit.Token import *
-from wosit.Function import *
+from wosit.Token import Token
+from wosit.Function import Variable, Function
 
 
 
@@ -37,6 +37,16 @@ class Task:
     def getmtime(self):
         return self.__target.getmtime()
 
+
+    def getName(self):
+        if type(self.__target) is Token:
+            return self.__target.get()
+        # TODO: Find a way to get the name of a Task target
+        return ""
+
+
+    def getCommand(self):
+        return self.__command
 
 
     def __addStage(self, stages, level, obj):

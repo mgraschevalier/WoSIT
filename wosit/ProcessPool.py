@@ -2,6 +2,13 @@
 from multiprocessing import Process, Semaphore, JoinableQueue
 
 
+def _runprocess(semaphore, q, func, args):
+    retval = func(*args)
+    q.put(retval)
+    q.task_done()
+    semaphore.release()
+
+
 class ProcessPool():
     __procs = None
     __semaphore = None
@@ -19,16 +26,10 @@ class ProcessPool():
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         for p, q in self.__procs:
-            p.kill()
-
-
-
-    def _runprocess(self, semaphore, q, func, args):
-        retval = func(*args)
-        q.put(retval)
-        q.task_done()
-        semaphore.release()
-
+            if hasattr(p, 'kill'):
+                p.kill()  # Use kill if available (Python >= 3.7)
+            else:
+                p.terminate()  # Fallback to terminate for Python 3.6 compatibility
 
 
     def map(self, func, args_iter):
@@ -38,7 +39,7 @@ class ProcessPool():
         for arg in args_iter:
             self.__semaphore.acquire()
             q = JoinableQueue()
-            p = Process(target=self._runprocess, args=(self.__semaphore, q, func, (arg,)))
+            p = Process(target=_runprocess, args=(self.__semaphore, q, func, (arg,)))
             p.start()
             self.__procs.append((p,q))
 
