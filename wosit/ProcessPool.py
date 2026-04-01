@@ -26,8 +26,10 @@ class ProcessPool():
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         for p, q in self.__procs:
-            p.kill()
-
+            if hasattr(p, 'kill'):
+                p.kill()  # Use kill if available (Python >= 3.7)
+            else:
+                p.terminate()  # Fallback to terminate for Python 3.6 compatibility
 
 
     def map(self, func, args_iter):
