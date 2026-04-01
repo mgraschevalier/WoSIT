@@ -17,7 +17,7 @@ setup(
     version=read_version(),
     author="Maxime Gras-Chevalier",
     author_email="",
-    description="Like make but in Python",
+    description="WoSIT is an automation tool made to replace **make** in many instances.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     url="",
