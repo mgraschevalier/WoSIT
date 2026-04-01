@@ -2,6 +2,13 @@
 from multiprocessing import Process, Semaphore, JoinableQueue
 
 
+def _runprocess(semaphore, q, func, args):
+    retval = func(*args)
+    q.put(retval)
+    q.task_done()
+    semaphore.release()
+
+
 class ProcessPool():
     __procs = None
     __semaphore = None
@@ -23,14 +30,6 @@ class ProcessPool():
 
 
 
-    def _runprocess(self, semaphore, q, func, args):
-        retval = func(*args)
-        q.put(retval)
-        q.task_done()
-        semaphore.release()
-
-
-
     def map(self, func, args_iter):
         self.__procs = []
 
@@ -38,7 +37,7 @@ class ProcessPool():
         for arg in args_iter:
             self.__semaphore.acquire()
             q = JoinableQueue()
-            p = Process(target=self._runprocess, args=(self.__semaphore, q, func, (arg,)))
+            p = Process(target=_runprocess, args=(self.__semaphore, q, func, (arg,)))
             p.start()
             self.__procs.append((p,q))
 
