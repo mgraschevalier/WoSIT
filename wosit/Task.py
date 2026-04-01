@@ -39,7 +39,10 @@ class Task:
 
 
     def getName(self):
-        return self.__target.get()
+        if type(self.__target) is Token:
+            return self.__target.get()
+        # TODO: Find a way to get the name of a Task target
+        return ""
 
 
     def getCommand(self):
