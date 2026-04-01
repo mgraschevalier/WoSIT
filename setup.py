@@ -2,7 +2,7 @@ import os
 from setuptools import setup, find_packages
 
 def read_version():
-    with open("./version.txt", "r") as file:
+    with open("./wosit/version.txt", "r") as file:
         return file.read().strip()
 
 # def read_requirements():
