@@ -36,7 +36,7 @@ setup(
     install_requires=[], #read_requirements(),
     entry_points={
         "console_scripts": [
-            "wosit=wosit.wosit:main",
+            "wosit=wosit.builder:main",
         ],
     },
 )
