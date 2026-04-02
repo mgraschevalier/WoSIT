@@ -9,6 +9,8 @@ PRINT_COLOR_CODE = "51"
 
 
 class Task:
+    __id = None
+
     __target = None
     __sources = None
     __command = None
@@ -19,7 +21,7 @@ class Task:
     __level = None
 
 
-    def __init__(self, target, sources=None, command=None):
+    def __init__(self, target, sources=None, command=None, id=None):
         if not type(target) in [Token, Task]:
             raise ValueError("Target must be of type \"Task or Token\".")
 
@@ -31,11 +33,17 @@ class Task:
         self.__sources = sources
 
         self.__command = command
+
+        self.__id = id
     
 
     # Returns the mtime of the target
     def getmtime(self):
         return self.__target.getmtime()
+
+
+    def getId(self):
+        return self.__id
 
 
     def getName(self):
