@@ -19,7 +19,7 @@ The script then generates those rules by calling the function.
 The rule with target `all` is added with its source set to the last generated rule. This target is special as it is executed by default when no other target is specified.
 
 ```python
-from wosit.wosit import *
+from wosit.builder import *
 
 def genMyRules(nbrules):
     addRule(
@@ -56,7 +56,7 @@ addRule(
 WoSIT is capable of executing Python functions. The syntax is the same as defining any other rule, with the exception that the function must be passed to the `command` argument through WoSIT's `Function()` object.
 
 ```python
-from wosit.wosit import *
+from wosit.builder import *
 
 addRule(
     target = "rule_0",
