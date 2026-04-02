@@ -93,8 +93,8 @@ class Maker:
                         source += [a for a in command.args if type(a) is Variable]
 
                 rule = self.__resolveSymbols({"target":t, "sources":source, "command":command})
-                rule["id"] = self.__current_id
-                self.__current_id += 1
+                # rule["id"] = self.__current_id
+                # self.__current_id += 1
                 self.__rules.append(rule)
 
 
@@ -240,7 +240,8 @@ class Maker:
                 self.__parsed.update({name:tok})
             return tok
     
-        if rule["id"] in list(self.__parsed.keys()):
+        if "id" in rule:
+            # if rule["id"] in list(self.__parsed.keys()):
             return self.__parsed[rule["id"]]
         
         srclist = []
@@ -248,6 +249,8 @@ class Maker:
             src = self.__buildTaskGraph(srcname)
             srclist.append(src)
         
+        rule["id"] = self.__current_id
+        self.__current_id += 1
         task = Task(target=Token(rule["target"]), sources=srclist, command=rule["command"], id=rule["id"])
         self.__parsed.update({rule["id"]:task})
         return task
