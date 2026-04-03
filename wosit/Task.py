@@ -1,11 +1,12 @@
 import os
+from subprocess import run
 
 from wosit.Token import Token
 from wosit.Function import Variable, Function
 
 
 
-PRINT_COLOR_CODE = "51"
+PRINT_COLOR_CODE = "96"
 
 
 class Task:
@@ -21,13 +22,12 @@ class Task:
     __level = None
 
 
-    def __init__(self, target, sources=None, command=None, id=None):
+    def __init__(self, target, sources=None, command=None, id=None, path=None):
         if not type(target) in [Token, Task]:
             raise ValueError("Target must be of type \"Task or Token\".")
 
         if not all(type(s) in [Token, Task] for s in sources):
             raise ValueError("Sources must be of type \"Task or Token\".")
-
 
         self.__target = target
         self.__sources = sources
@@ -35,6 +35,7 @@ class Task:
         self.__command = command
 
         self.__id = id
+        self.__path = path
     
 
     # Returns the mtime of the target
@@ -97,15 +98,12 @@ class Task:
         if self.__parsed_stage is True:
             return self.__need_update
 
-        
         need_update = False
 
         self_time = self.getmtime()
         if self_time is None:
             need_update = True
         
-        
-
         src_update = False
         for s in self.__sources:
             if type(s) is Task:
@@ -124,9 +122,6 @@ class Task:
         self.__parsed_stage = True
 
         need_update |= src_update
-
-        if len(self.__sources) == 0:
-            need_update = True
 
         self.__need_update = need_update
 
@@ -163,24 +158,39 @@ class Task:
 
 
     def __printCommand(self, text):
-        print(f"\033[38;5;{PRINT_COLOR_CODE}m{text}\033[0m")
+        print(f"\033[{PRINT_COLOR_CODE}m{text}\033[0m")
 
 
-    def __executeShell(self, command):
+    def __formatColor(self, text):
+        return f"\033[{PRINT_COLOR_CODE}m{text}\033[0m"
+
+
+    # TODO: Add support for '\' splitting the shell commands
+    def __formatCommand(self, command):
         cmdlines = command.split("\n")
         cmdlines = [ln.lstrip().rstrip() for ln in cmdlines]
+        cmdlines = [l for l in cmdlines if l != ""]
 
-        # TODO: Add support for '\' splitting the shell commands
+        final_commands = []
         for c in cmdlines:
-            if c == "":
-                continue
             if c[0] != "@":
-                self.__printCommand(f"""{c}""")
+                final_commands.append(f"echo \"{self.__formatColor(c)}\"")
             else:
                 c = c[1:]
-            res = os.system(c) # TODO: Open one shell and execute all lines of a rule into the same one.
-            if res:
-                return res
+
+            final_commands.append(c)
+        
+        return " && ".join(final_commands)
+    
+
+    def __executeShell(self, command):
+        cmd_to_exec = self.__formatCommand(command)
+        
+        proc = run(cmd_to_exec, shell=True, cwd=self.__path)
+
+        if proc.returncode:
+            return proc.returncode
+
         return 0
 
 
@@ -194,6 +204,7 @@ class Task:
         return olst
 
 
+    # TODO: Check if change of cwd to match self.__path needed or not (to mimmick self.__executeShell behavior)
     def __executeCallable(self, command):
         func = command.function
         args = command.args

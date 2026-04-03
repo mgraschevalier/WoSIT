@@ -26,6 +26,9 @@ class Maker:
         self.__current_id = 0
 
 
+    def __epxandPath(self, path):
+        return os.path.expanduser(os.path.expandvars(path))
+
     def __expandPaths(self, paths):
         if type(paths) is not list:
             paths = [paths]
@@ -47,7 +50,7 @@ class Maker:
 
 
 
-    def addRule(self, target, source=None, command=None):
+    def addRule(self, target, source=None, command=None, path=None):
         if not type(target) is list:
             target = [target]
         
@@ -65,6 +68,24 @@ class Maker:
 
         target = [t for t in target]
         source = [s for s in source]
+
+        if type(path) is str:
+            path = self.__epxandPath(path)
+
+            # Add path to targets
+            tmp_target = []
+            for t in target:
+                fullpath = os.path.join(path, t)
+                tmp_target.append(fullpath)
+
+            # Add path to sources
+            tmp_source = []
+            for s in source:
+                fullpath = os.path.join(path, s)
+                tmp_source.append(fullpath)
+
+            target = tmp_target
+            source = tmp_source
 
 
         for t in target:
@@ -92,9 +113,7 @@ class Maker:
                     if not command.args is None:
                         source += [a for a in command.args if type(a) is Variable]
 
-                rule = self.__resolveSymbols({"target":t, "sources":source, "command":command})
-                # rule["id"] = self.__current_id
-                # self.__current_id += 1
+                rule = self.__resolveSymbols({"target":t, "sources":source, "command":command, "path":path})
                 self.__rules.append(rule)
 
 
@@ -237,9 +256,9 @@ class Maker:
                 tok = self.__parsed[name]
             else:
                 tok = Token(name)
-                self.__parsed.update({name:tok})
-            return tok
-    
+                self.__parsed.update({name:tok}) # TODO: This will maybe cause problems with parsed task id checks 
+            return tok    
+
         if "id" in rule:
             # if rule["id"] in list(self.__parsed.keys()):
             return self.__parsed[rule["id"]]
@@ -251,7 +270,7 @@ class Maker:
         
         rule["id"] = self.__current_id
         self.__current_id += 1
-        task = Task(target=Token(rule["target"]), sources=srclist, command=rule["command"], id=rule["id"])
+        task = Task(target=Token(rule["target"]), sources=srclist, command=rule["command"], id=rule["id"], path=rule["path"])
         self.__parsed.update({rule["id"]:task})
         return task
 
