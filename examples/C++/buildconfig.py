@@ -61,7 +61,7 @@ addRule(
 addRule(
     target="clean",
     command=f"""
-    rm -rf {OBJ_DIR}/*
+    rm -rf {os.path.join(OBJ_DIR, "*")}
     rm -rf {APP}
     """
 )
