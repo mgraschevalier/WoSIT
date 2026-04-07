@@ -50,7 +50,7 @@ class Maker:
 
 
 
-    def addRule(self, target, source=None, command=None, path=None):
+    def addRule(self, target, source=None, command=None, path=None, on_failure_command=None):
         if not type(target) is list:
             target = [target]
         
@@ -93,11 +93,15 @@ class Maker:
                 patterns_list = self.__getTargetsList(self.__patterns)
                 if t in patterns_list:
                     raise ValueError(f"Pattern \"{t}\" is already defined.")
-                self.__patterns.append({"pattern":t, "sources":source, "command":command})
+                self.__patterns.append({"pattern":t, "sources":source, "command":command, "on_failure_command":on_failure_command})
 
             else:
                 if type(command) is str:
                     if "%" in command:
+                        raise ValueError("Can't use % placeholder in non-pattern rules.")
+
+                if type(on_failure_command) is str:
+                    if "%" in on_failure_command:
                         raise ValueError("Can't use % placeholder in non-pattern rules.")
         
                 if any("%" in s for s in source):
@@ -113,7 +117,18 @@ class Maker:
                     if not command.args is None:
                         source += [a for a in command.args if type(a) is Variable]
 
-                rule = self.__resolveSymbols({"target":t, "sources":source, "command":command, "path":path})
+                if type(on_failure_command) is Function:
+                    # Add variables to source
+                    if not on_failure_command.args is None:
+                        source += [a for a in on_failure_command.args if type(a) is Variable]
+
+                rule = self.__resolveSymbols({
+                    "target": t,
+                    "sources": source,
+                    "command": command,
+                    "on_failure_command": on_failure_command,
+                    "path": path,
+                })
                 self.__rules.append(rule)
 
 
@@ -136,16 +151,22 @@ class Maker:
         target = rule["target"]
         sources = rule["sources"]
         command = rule["command"]
+        on_failure_command = rule.get("on_failure_command", None)
 
-        if not type(command) is str:
-            return rule
+        if type(command) is str:
+            c = command.replace("$@", target)
+            if not None in sources and len(sources) > 0:
+                c = c.replace("$^", " ".join(sources))
+                c = c.replace("$<", sources[0])
+            rule["command"] = c
 
-        c = command.replace("$@", target)
-        if not None in sources and len(sources) > 0:
-            c = c.replace("$^", " ".join(sources))
-            c = c.replace("$<", sources[0])
-        
-        rule["command"] = c
+        if type(on_failure_command) is str:
+            c = on_failure_command.replace("$@", target)
+            if not None in sources and len(sources) > 0:
+                c = c.replace("$^", " ".join(sources))
+                c = c.replace("$<", sources[0])
+            rule["on_failure_command"] = c
+
         return rule
 
 
@@ -221,7 +242,13 @@ class Maker:
                     ocommand = p["command"].replace("%", patmatch)
                 else:
                     ocommand = p["command"]
-                return {"target":otarget, "sources":osources, "command":ocommand}
+
+                if type(p.get("on_failure_command", None)) is str:
+                    ofail = p["on_failure_command"].replace("%", patmatch)
+                else:
+                    ofail = p.get("on_failure_command", None)
+
+                return {"target":otarget, "sources":osources, "command":ocommand, "on_failure_command":ofail}
             
         return None
     
@@ -270,7 +297,14 @@ class Maker:
         
         rule["id"] = self.__current_id
         self.__current_id += 1
-        task = Task(target=Token(rule["target"]), sources=srclist, command=rule["command"], id=rule["id"], path=rule["path"])
+        task = Task(
+            target=Token(rule["target"]),
+            sources=srclist,
+            command=rule["command"],
+            on_failure_command=rule.get("on_failure_command", None),
+            id=rule["id"],
+            path=rule["path"],
+        )
         self.__parsed.update({rule["id"]:task})
         return task
 
