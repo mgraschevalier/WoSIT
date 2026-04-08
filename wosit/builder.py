@@ -13,8 +13,8 @@ global build
 build = Maker()
 
 global addRule
-def addRule(target, source=None, command=None, path=None):
-    build.addRule(target=target, source=source, command=command, path=path)
+def addRule(target, source=None, command=None, path=None, on_failure_command=None):
+    build.addRule(target=target, source=source, command=command, path=path, on_failure_command=on_failure_command)
 
 def importModule(path):
     dirpath = os.path.abspath(os.path.dirname(path))

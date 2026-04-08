@@ -15,6 +15,7 @@ class Task:
     __target = None
     __sources = None
     __command = None
+    __on_failure_command = None
 
     __parsed_stage = False
     __need_update = False
@@ -22,7 +23,10 @@ class Task:
     __level = None
 
 
-    def __init__(self, target, sources=None, command=None, id=None, path=None):
+    def __init__(self, target, sources=None, command=None, on_failure_command=None, id=None, path=None):
+        if sources is None:
+            sources = []
+
         if not type(target) in [Token, Task]:
             raise ValueError("Target must be of type \"Task or Token\".")
 
@@ -33,6 +37,7 @@ class Task:
         self.__sources = sources
 
         self.__command = command
+        self.__on_failure_command = on_failure_command
 
         self.__id = id
         self.__path = path
@@ -40,6 +45,8 @@ class Task:
 
     # Returns the mtime of the target
     def getmtime(self):
+        if self.__target is None:
+            return None
         return self.__target.getmtime()
 
 
@@ -69,16 +76,18 @@ class Task:
 
 
     def getLevel(self):
+        sources = self.__sources or []
+
         if not self.__level is None:
             return self.__level
         
-        if len(self.__sources) == 0:
+        if len(sources) == 0:
             self.__level = 0
             return 0
         
         max_level = 0
         is_any_task = False
-        for s in self.__sources:
+        for s in sources:
             if type(s) is Task:
                 is_any_task = True
                 slv = s.getLevel()
@@ -94,6 +103,8 @@ class Task:
 
 
     def buildNextStage(self, stages):
+        sources = self.__sources or []
+
         # Do not add itself again if already parsed.
         if self.__parsed_stage is True:
             return self.__need_update
@@ -105,7 +116,7 @@ class Task:
             need_update = True
         
         src_update = False
-        for s in self.__sources:
+        for s in sources:
             if type(s) is Task:
                 # Recursively add sources to stages
                 src_update |= s.buildNextStage(stages)
@@ -116,7 +127,7 @@ class Task:
                     if source_time is None:
                         src_update = True
                     else:
-                        src_update |= (s.getmtime() > self.getmtime()) # If source newer than target
+                        src_update |= (source_time > self_time) # If source newer than target
                         
         
         self.__parsed_stage = True
@@ -151,9 +162,26 @@ class Task:
                 res = self.__executeCallable(self.__command)
 
             if res != 0:
-                return res
+                fallback_res = self.__executeOnFailureCommand()
+                if fallback_res == 0:
+                    return 0
+                if fallback_res is None:
+                    return res
+                return fallback_res
         
         return 0
+
+
+    def __executeOnFailureCommand(self):
+        if self.__on_failure_command is None:
+            return None
+
+        if type(self.__on_failure_command) is str:
+            return self.__executeShell(self.__on_failure_command)
+        elif type(self.__on_failure_command) is Function:
+            return self.__executeCallable(self.__on_failure_command)
+
+        return 1
 
 
 
