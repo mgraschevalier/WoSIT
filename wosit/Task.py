@@ -152,6 +152,19 @@ class Task:
         return stages
 
 
+    @property
+    def dry(self):
+        """get only the text of the command, even if muted"""
+        if not self.__command is None:
+            res = 1
+            if type(self.__command) is str:
+                cmd_txt = self.__formatCommand(self.__command)
+                res = cmd_txt.split("&&")[1][1:] if "&&" in cmd_txt \
+                        else cmd_txt
+            elif type(self.__command) is Function:
+                res = f"{self.__command.function.__name__}"
+        return res if res != 0 else None
+
 
     def execute(self):
         if not self.__command is None:

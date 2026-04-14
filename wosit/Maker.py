@@ -317,6 +317,7 @@ class Maker:
 
 
     def getStages(self, name=None, max_process=1) -> dict:
+        # TODO: move to execute()
         if type(name) is list:
             if len(name) > 0:
                 for n in name:
@@ -340,6 +341,46 @@ class Maker:
             return None
         
         return stages
+
+    def getStagesDry(self, name=None) -> dict:
+        # TODO: move to dry_run()
+        if type(name) is list:
+            if len(name) > 0:
+                for n in name:
+                    self.dry_run(n)
+                return None
+            else:
+                self.dry_run(None)
+                return None
+
+        if name is None:
+            name = "all"
+
+
+        # Chain rules in a dependcy graph
+        taskgraph = self.__buildTaskGraph(name)
+        # Retrieve execution stages based on dependency and need for update
+        stages = taskgraph.buildStages()
+
+        stage_levels = list(stages.keys())
+        if len(stage_levels) == 0:
+            return None
+        
+        return stages
+
+    def dry_run(self, name=None):
+        stages = self.getStagesDry(name)
+        
+        if stages is None:
+            return
+        directory = os.getcwd()
+
+        data_out = ""
+
+        for lvl, stage in sorted(stages.items()):
+            for task in stage:
+                print(task.dry)
+
 
     def execute(self, name=None, max_process=1):
 
