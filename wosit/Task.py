@@ -1,5 +1,8 @@
 import os
 from subprocess import run
+from multiprocessing import Queue
+import socket
+
 
 from wosit.Token import Token
 from wosit.Function import Variable, Function
@@ -22,7 +25,7 @@ class Task:
     __level = None
 
 
-    def __init__(self, target, sources=None, command=None, id=None, path=None):
+    def __init__(self, target, sources=None, command=None, id=None, path=None, quiet=False):
         if not type(target) in [Token, Task]:
             raise ValueError("Target must be of type \"Task or Token\".")
 
@@ -36,6 +39,11 @@ class Task:
 
         self.__id = id
         self.__path = path
+
+        self.__exec_status = None
+        self.__monitor_socket = None
+
+        self.quiet = quiet
     
 
     # Returns the mtime of the target
@@ -141,6 +149,27 @@ class Task:
         return stages
 
 
+    def getId(self):
+        return self.__id
+    
+
+    def getChildrenIds(self):
+        chids = [s.getId() for s in self.__sources if type(s) == Task]
+        return chids
+    
+
+    def getExecStatus(self):
+        return self.__exec_status    
+
+
+    def addMonitor(self, monitor_socket):
+        self.__monitor_socket = monitor_socket
+
+
+    def __notifyMonitor(self):
+        if self.__monitor_socket is not None:
+            self.__monitor_socket.send(bytes([self.__id]))
+
 
     def execute(self):
         if not self.__command is None:
@@ -151,8 +180,12 @@ class Task:
                 res = self.__executeCallable(self.__command)
 
             if res != 0:
+                self.__exec_status = res
+                self.__notifyMonitor()
                 return res
-        
+            
+        self.__exec_status = 0
+        self.__notifyMonitor()
         return 0
 
 
@@ -174,7 +207,8 @@ class Task:
         final_commands = []
         for c in cmdlines:
             if c[0] != "@":
-                final_commands.append(f"echo \"{self.__formatColor(c)}\"")
+                if self.quiet is False:
+                    final_commands.append(f"echo \"{self.__formatColor(c)}\"")
             else:
                 c = c[1:]
 

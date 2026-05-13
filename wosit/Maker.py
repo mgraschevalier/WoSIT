@@ -7,6 +7,8 @@ from wosit.Token import Token
 from wosit.Task import Task
 from wosit.Function import Variable, Function
 
+from wosit.Monitor import Monitor
+
 from wosit.ProcessPool import ProcessPool
 
 class Maker:
@@ -282,14 +284,14 @@ class Maker:
 
 
 
-    def getStages(self, name=None, max_process=1) -> dict:
+    def getStages(self, name=None, max_process=1, disp_type="make") -> dict:
         if type(name) is list:
             if len(name) > 0:
                 for n in name:
-                    self.execute(n, max_process)
+                    self.execute(n, max_process, disp_type=disp_type)
                 return None
             else:
-                self.execute(None, max_process)
+                self.execute(None, max_process, disp_type=disp_type)
                 return None
 
         if name is None:
@@ -307,11 +309,14 @@ class Maker:
         
         return stages
 
-    def execute(self, name=None, max_process=1):
+    def execute(self, name=None, max_process=1, disp_type="make"):
 
-        stages = self.getStages(name, max_process)
+        stages = self.getStages(name, max_process, disp_type=disp_type)
         if stages is None:
             return
+        
+        if disp_type != "make":
+            monitor = Monitor(stages=stages)
 
         # Execute every stage element
         with ProcessPool(max_process) as p:
@@ -321,5 +326,8 @@ class Maker:
 
                 if any(r != 0 for r in res):
                     raise RuntimeError("The execution of a task failed.")
+                
+        if disp_type != "make":
+            monitor.close()
 
 

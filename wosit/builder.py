@@ -36,6 +36,7 @@ def main():
     parser.add_argument("-j", "--jobs", type=int, default=1, help="Allow N jobs at once.")
     parser.add_argument("-f", "--file", type=str, help="Use the specified buildconfig file.")
     parser.add_argument("-C", "--directory", type=str, help="Change the directory before doing anything.")
+    parser.add_argument("--display", type=str, default="make", choices=["make", "cmake"], help="Choose between make and cmake display styles.")
 
     parsed_args = parser.parse_args()
 
@@ -55,7 +56,7 @@ def main():
         tnames = build.getTargetsList()
         print("\n".join(tnames))
     else:
-        build.execute(parsed_args.rule, max_process=parsed_args.jobs)
+        build.execute(parsed_args.rule, max_process=parsed_args.jobs, disp_type=parsed_args.display)
 
 
 if __name__ == "__main__":

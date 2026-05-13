@@ -1,23 +1,19 @@
 
-from multiprocessing import Process, Semaphore, JoinableQueue
+from multiprocessing.pool import ThreadPool
 
 
-def _runprocess(semaphore, q, func, args):
+def _runprocess(func, args):
     retval = func(*args)
-    q.put(retval)
-    q.task_done()
-    semaphore.release()
+    return retval
+
 
 
 class ProcessPool():
-    __procs = None
-    __semaphore = None
-
 
     def __init__(self, processes=1):
         if processes < 1:
             raise ValueError("Argument \"processes\" must be equal or higher than 1.")
-        self.__semaphore = Semaphore(processes)
+        self.__nb_processes = processes
 
 
 
@@ -25,33 +21,20 @@ class ProcessPool():
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
-        for p, q in self.__procs:
-            if hasattr(p, 'kill'):
-                p.kill()  # Use kill if available (Python >= 3.7)
-            else:
-                p.terminate()  # Fallback to terminate for Python 3.6 compatibility
+        pass
+    #     for p, q in self.__procs:
+    #         if hasattr(p, 'kill'):
+    #             p.kill()  # Use kill if available (Python >= 3.7)
+    #         else:
+    #             p.terminate()  # Fallback to terminate for Python 3.6 compatibility
 
 
     def map(self, func, args_iter):
-        self.__procs = []
 
-        ## Start every process
-        for arg in args_iter:
-            self.__semaphore.acquire()
-            q = JoinableQueue()
-            p = Process(target=_runprocess, args=(self.__semaphore, q, func, (arg,)))
-            p.start()
-            self.__procs.append((p,q))
+        args = [(func, (arg,)) for arg in args_iter]
 
-
-        ## Wait for processes to finish and retrieve returned values.
-        retvalues = []
-        for p,q in self.__procs:
-            p.join()
-            q.join()
-            if not q.empty():
-                retvalues.append(q.get())
-            else:
-                retvalues.append(None)
+        retvalues = None
+        with ThreadPool(self.__nb_processes) as p:
+            retvalues = p.starmap(func=_runprocess, iterable=args)
 
         return retvalues
