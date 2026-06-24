@@ -115,7 +115,8 @@ class Maker:
 
                 rule = self.__resolveSymbols({"target":t, "sources":source, "command":command, "path":path})
                 self.__rules.append(rule)
-
+        
+        return target
 
 
     def __getTargetsList(self, rlist=None):
