@@ -36,6 +36,7 @@ def main():
     parser.add_argument("-j", "--jobs", type=int, default=1, help="Allow N jobs at once.")
     parser.add_argument("-f", "--file", type=str, help="Use the specified buildconfig file.")
     parser.add_argument("-C", "--directory", type=str, help="Change the directory before doing anything.")
+    parser.add_argument("-n", "--just-print", "--dry-run", "--recon", action="store_true", help="Don't actually run any recipe; just print them.")
 
     parsed_args = parser.parse_args()
 
@@ -54,6 +55,8 @@ def main():
     if parsed_args.list is True:
         tnames = build.getTargetsList()
         print("\n".join(tnames))
+    elif parsed_args.just_print is True:
+        build.dry_run(parsed_args.rule)
     else:
         build.execute(parsed_args.rule, max_process=parsed_args.jobs)
 
