@@ -50,7 +50,7 @@ class Maker:
 
 
 
-    def addRule(self, target, source=None, command=None, path=None):
+    def addRule(self, target, source=None, command=None, path=None, phony=False):
         if not type(target) is list:
             target = [target]
         
@@ -113,7 +113,7 @@ class Maker:
                     if not command.args is None:
                         source += [a for a in command.args if type(a) is Variable]
 
-                rule = self.__resolveSymbols({"target":t, "sources":source, "command":command, "path":path})
+                rule = self.__resolveSymbols({"target":t, "sources":source, "command":command, "path":path, "phony":phony})
                 self.__rules.append(rule)
         
         return target
@@ -271,7 +271,7 @@ class Maker:
         
         rule["id"] = self.__current_id
         self.__current_id += 1
-        task = Task(target=Token(rule["target"]), sources=srclist, command=rule["command"], id=rule["id"], path=rule["path"])
+        task = Task(target=Token(rule["target"], phony=rule["phony"]), sources=srclist, command=rule["command"], id=rule["id"], path=rule["path"])
         self.__parsed.update({rule["id"]:task})
         return task
 

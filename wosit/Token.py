@@ -8,8 +8,9 @@ class Token:
     __type = None
 
 
-    def __init__(self, object):
+    def __init__(self, object, phony=False):
         self.__object = object
+        self.__phony = phony
 
         if type(object) is str:
             if os.path.isfile(object):
@@ -28,6 +29,8 @@ class Token:
     
 
     def __getmtime(self, obj):
+        if self.__phony is True:
+            return None
         if type(obj) is Variable:
             return None
         if not os.path.isfile(obj):
