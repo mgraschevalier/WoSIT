@@ -49,6 +49,22 @@ addRule(
 )
 ```
 
+### Run a Command on Failure
+
+You can pass `on_failure_command` to execute a fallback command when `command` fails.
+
+```python
+from wosit.builder import *
+
+addRule(
+    target="build",
+    command="python3 build.py",
+    on_failure_command="echo Build failed && python3 collect_logs.py"
+)
+```
+
+`on_failure_command` can be either a shell command string or a `Function(...)`, just like `command`.
+
 
 
 ### Python Functions Example
